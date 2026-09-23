@@ -1,12 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class App extends StatelessWidget {
+  const App({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,40 +13,44 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: CupertinoThemeData(
         brightness: Brightness.light,
-        primaryColor: Color(0xFF5B4BDB),
-        scaffoldBackgroundColor: Color(0xFFF6F6FA),
+        primaryColor: Color(0xFF5B4FE9),
+        scaffoldBackgroundColor: Color(0xFFF8F8FA),
         textTheme: CupertinoTextThemeData(
           textStyle: TextStyle(
             fontFamily: '.SF Pro Display',
-            color: Color(0xFF17171B),
+            color: Color(0xFF111113),
           ),
         ),
       ),
-      home: RegistrationPage(),
+      home: WelcomePage(),
     );
   }
 }
 
-class RegistrationPage extends StatefulWidget {
-  const RegistrationPage({super.key});
+// ============================================================================
+// PAGE
+// ============================================================================
+
+class WelcomePage extends StatefulWidget {
+  const WelcomePage({super.key});
 
   @override
-  State<RegistrationPage> createState() => _RegistrationPageState();
+  State<WelcomePage> createState() => _WelcomePageState();
 }
 
-class _RegistrationPageState extends State<RegistrationPage> {
+class _WelcomePageState extends State<WelcomePage> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
 
   bool obscurePassword = true;
+  bool isSubmitting = false;
+  bool showSuccess = false;
 
-  String selectedSex = 'Male';
+  String selectedGender = 'Male';
 
   final Set<String> selectedCourses = {'Machine Learning', 'Full stack'};
 
   double tuition = 500;
-
-  bool isSubmitting = false;
 
   @override
   void dispose() {
@@ -55,6 +58,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
     passwordController.dispose();
     super.dispose();
   }
+
+  // --------------------------------------------------------------------------
+  // FORM ACTIONS
+  // --------------------------------------------------------------------------
 
   void toggleCourse(String course) {
     setState(() {
@@ -66,22 +73,38 @@ class _RegistrationPageState extends State<RegistrationPage> {
     });
   }
 
+  void clearForm() {
+    setState(() {
+      usernameController.clear();
+      passwordController.clear();
+
+      selectedGender = 'Male';
+
+      selectedCourses
+        ..clear()
+        ..add('Machine Learning')
+        ..add('Full stack');
+
+      tuition = 500;
+    });
+  }
+
   Future<void> submit() async {
     final username = usernameController.text.trim();
     final password = passwordController.text;
 
     if (username.length < 10) {
-      showMessage('Username must be at least 10 characters');
+      showToast('Username must be at least 10 characters');
       return;
     }
 
     if (password.length < 8) {
-      showMessage('Password must be at least 8 characters');
+      showToast('Password must be at least 8 characters');
       return;
     }
 
     if (selectedCourses.isEmpty) {
-      showMessage('Please select at least one course');
+      showToast('Select at least one course');
       return;
     }
 
@@ -89,212 +112,158 @@ class _RegistrationPageState extends State<RegistrationPage> {
       isSubmitting = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    if (!mounted) return;
 
     setState(() {
       isSubmitting = false;
+      showSuccess = true;
     });
 
-    showMessage('Submitted successfully 🎉', success: true);
-  }
-
-  void clearForm() {
-    setState(() {
-      usernameController.clear();
-      passwordController.clear();
-
-      selectedSex = 'Male';
-
-      selectedCourses.clear();
-
-      tuition = 500;
-    });
-  }
-
-  void showMessage(String message, {bool success = false}) {
-    showCupertinoModalPopup(
-      context: context,
-      barrierColor: Colors.transparent,
-      builder: (context) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          showSuccess = false;
         });
+      }
+    });
+  }
 
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 15,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF24242C),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 25,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: success
-                              ? const Color(0xFF65C466)
-                              : const Color(0xFFFF6B6B),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          success
-                              ? CupertinoIcons.check_mark
-                              : CupertinoIcons.exclamationmark,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+  void showToast(String message) {
+    setState(() {
+      showSuccess = false;
+    });
+
+    showCupertinoDialog(
+      context: context,
+      builder: (context) {
+        return CupertinoAlertDialog(
+          title: const Text('Check your details'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(message),
           ),
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Okay'),
+            ),
+          ],
         );
       },
     );
   }
 
+  // --------------------------------------------------------------------------
+  // BUILD
+  // --------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      child: SafeArea(
-        child: GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-          },
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ----------------------------------------------------------
-                // HEADER
-                // ----------------------------------------------------------
+      backgroundColor: const Color(0xFFF8F8FA),
 
-                const Text(
-                  'Welcome back.',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1.2,
-                  ),
-                ),
+      child: Stack(
+        children: [
+          SafeArea(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 34, 24, 50),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // ====================================================
+                      // HEADER
+                      // ====================================================
 
-                const SizedBox(height: 8),
-
-                Text(
-                  'Complete your details to continue.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // ----------------------------------------------------------
-                // FORM CARD
-                // ----------------------------------------------------------
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.045),
-                        blurRadius: 30,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ----------------------------------------------------
-                      // USERNAME
-                      // ----------------------------------------------------
-
-                      const FormLabel(
-                        title: 'Username',
-                        subtitle: 'Enter your username',
+                      const Text(
+                        'Welcome back',
+                        style: TextStyle(
+                          fontSize: 38,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.8,
+                          height: 1.05,
+                        ),
                       ),
 
                       const SizedBox(height: 10),
+
+                      Text(
+                        'Let’s get you set up.',
+                        style: TextStyle(
+                          fontSize: 17,
+                          color: const Color(0xFF77777F),
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+
+                      const SizedBox(height: 46),
+
+                      // ====================================================
+                      // ACCOUNT
+                      // ====================================================
+                      const SectionTitle(title: 'ACCOUNT'),
+
+                      const SizedBox(height: 16),
+
+                      const FieldTitle(title: 'Username'),
+
+                      const SizedBox(height: 8),
 
                       CupertinoTextField(
                         controller: usernameController,
-                        placeholder: 'Username',
+                        placeholder: 'Enter your username',
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 17,
                           vertical: 16,
                         ),
-                        keyboardType: TextInputType.text,
                         textInputAction: TextInputAction.next,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        placeholderStyle: const TextStyle(
+                          color: Color(0xFFA4A4AB),
+                          fontSize: 16,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF6F6F8),
-                          borderRadius: BorderRadius.circular(16),
+                          color: CupertinoColors.white,
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 22),
 
-                      // ----------------------------------------------------
-                      // PASSWORD
-                      // ----------------------------------------------------
-                      const FormLabel(
-                        title: 'Password',
-                        subtitle: 'Use at least 8 characters',
-                      ),
+                      const FieldTitle(title: 'Password'),
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
 
                       CupertinoTextField(
                         controller: passwordController,
-                        placeholder: 'Password',
                         obscureText: obscurePassword,
+                        placeholder: 'Enter your password',
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 17,
                           vertical: 16,
+                        ),
+                        textInputAction: TextInputAction.done,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        placeholderStyle: const TextStyle(
+                          color: Color(0xFFA4A4AB),
+                          fontSize: 16,
                         ),
                         suffix: CupertinoButton(
                           padding: const EdgeInsets.only(right: 14),
+                          minSize: 0,
                           onPressed: () {
                             setState(() {
                               obscurePassword = !obscurePassword;
@@ -304,81 +273,99 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             obscurePassword
                                 ? CupertinoIcons.eye
                                 : CupertinoIcons.eye_slash,
-                            size: 20,
-                            color: Colors.grey.shade600,
+                            size: 19,
+                            color: const Color(0xFF77777F),
                           ),
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF6F6F8),
-                          borderRadius: BorderRadius.circular(16),
+                          color: CupertinoColors.white,
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 46),
 
-                      // ----------------------------------------------------
-                      // SEX
-                      // ----------------------------------------------------
-                      const FormLabel(title: 'Sex', subtitle: 'Choose one'),
+                      // ====================================================
+                      // GENDER
+                      // ====================================================
+                      const SectionTitle(title: 'GENDER'),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       Row(
                         children: [
-                          GenderOption(
-                            title: 'Male',
-                            value: 'Male',
-                            selected: selectedSex == 'Male',
-                            onTap: () {
-                              setState(() {
-                                selectedSex = 'Male';
-                              });
-                            },
+                          Expanded(
+                            child: SelectionTile(
+                              title: 'Male',
+                              icon: CupertinoIcons.person,
+                              selected: selectedGender == 'Male',
+                              onTap: () {
+                                setState(() {
+                                  selectedGender = 'Male';
+                                });
+                              },
+                            ),
                           ),
-                          const SizedBox(width: 28),
-                          GenderOption(
-                            title: 'Female',
-                            value: 'Female',
-                            selected: selectedSex == 'Female',
-                            onTap: () {
-                              setState(() {
-                                selectedSex = 'Female';
-                              });
-                            },
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SelectionTile(
+                              title: 'Female',
+                              icon: CupertinoIcons.person,
+                              selected: selectedGender == 'Female',
+                              onTap: () {
+                                setState(() {
+                                  selectedGender = 'Female';
+                                });
+                              },
+                            ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 46),
 
-                      // ----------------------------------------------------
+                      // ====================================================
                       // COURSES
-                      // ----------------------------------------------------
-                      const FormLabel(
-                        title: 'Courses',
-                        subtitle: 'Select everything you are interested in',
+                      // ====================================================
+                      const SectionTitle(title: 'COURSES'),
+
+                      const SizedBox(height: 7),
+
+                      Text(
+                        'Choose the courses you’re interested in.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: const Color(0xFF8A8A92),
+                        ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 15),
 
-                      CourseOption(
+                      CourseTile(
                         title: 'Machine Learning',
+                        subtitle: 'AI, data & intelligent systems',
                         selected: selectedCourses.contains('Machine Learning'),
                         onTap: () {
                           toggleCourse('Machine Learning');
                         },
                       ),
 
-                      CourseOption(
+                      const SizedBox(height: 10),
+
+                      CourseTile(
                         title: 'Full stack',
+                        subtitle: 'Frontend, backend & databases',
                         selected: selectedCourses.contains('Full stack'),
                         onTap: () {
                           toggleCourse('Full stack');
                         },
                       ),
 
-                      CourseOption(
+                      const SizedBox(height: 10),
+
+                      CourseTile(
                         title: 'Mobile application',
+                        subtitle: 'Build iOS & Android applications',
                         selected: selectedCourses.contains(
                           'Mobile application',
                         ),
@@ -387,48 +374,49 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         },
                       ),
 
-                      const SizedBox(height: 26),
+                      const SizedBox(height: 46),
 
-                      // ----------------------------------------------------
+                      // ====================================================
                       // TUITION
-                      // ----------------------------------------------------
-                      const FormLabel(
-                        title: 'Tuition',
-                        subtitle: 'How much are you comfortable paying?',
-                      ),
+                      // ====================================================
+                      const SectionTitle(title: 'TUITION'),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 13),
 
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
                             '\$${tuition.round()}',
                             style: const TextStyle(
-                              fontSize: 28,
+                              fontSize: 34,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.8,
+                              letterSpacing: -1.5,
                             ),
                           ),
-                          Text(
-                            '\$1000',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 5),
+                            child: Text(
+                              'per course',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: const Color(0xFF888890),
+                              ),
                             ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
 
                       CupertinoSlider(
                         value: tuition,
                         min: 100,
                         max: 1000,
                         divisions: 18,
-                        activeColor: const Color(0xFF5B4BDB),
+                        activeColor: const Color(0xFF5B4FE9),
+                        thumbColor: const Color(0xFF5B4FE9),
                         onChanged: (value) {
                           setState(() {
                             tuition = value;
@@ -436,161 +424,148 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         },
                       ),
 
-                      const SizedBox(height: 22),
-
-                      // ----------------------------------------------------
-                      // BUTTONS
-                      // ----------------------------------------------------
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: CupertinoButton.filled(
-                          borderRadius: BorderRadius.circular(16),
-                          onPressed: isSubmitting ? null : submit,
-                          child: isSubmitting
-                              ? const CupertinoActivityIndicator(
-                                  color: Colors.white,
-                                )
-                              : const Text(
-                                  'Submit',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '\$100',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: const Color(0xFF9999A1),
+                              ),
+                            ),
+                            Text(
+                              '\$1,000',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: const Color(0xFF9999A1),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 48),
+
+                      // ====================================================
+                      // ACTIONS
+                      // ====================================================
+                      SizedBox(
+                        height: 56,
+                        width: double.infinity,
+                        child: CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          borderRadius: BorderRadius.circular(17),
+                          color: const Color(0xFF5B4FE9),
+                          disabledColor: const Color(0xFFAAA5E8),
+                          onPressed: isSubmitting ? null : submit,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: isSubmitting
+                                ? const CupertinoActivityIndicator(
+                                    key: ValueKey('loading'),
+                                    color: CupertinoColors.white,
+                                  )
+                                : const Text(
+                                    'Continue',
+                                    key: ValueKey('continue'),
+                                    style: TextStyle(
+                                      color: CupertinoColors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 13),
 
                       SizedBox(
+                        height: 48,
                         width: double.infinity,
-                        height: 54,
                         child: CupertinoButton(
-                          borderRadius: BorderRadius.circular(16),
-                          color: const Color(0xFFF1F1F4),
+                          padding: EdgeInsets.zero,
                           onPressed: clearForm,
                           child: const Text(
-                            'Clear',
+                            'Clear form',
                             style: TextStyle(
-                              color: Color(0xFF55555E),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF77777F),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
 
-                const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                Center(
-                  child: Text(
-                    'Your information is kept private.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                      Center(
+                        child: Text(
+                          'Your information stays private.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(0xFFAAAAAF),
+                          ),
+                        ),
+                      ),
+                    ]),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
 
-// ============================================================================
-// FORM LABEL
-// ============================================================================
-
-class FormLabel extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const FormLabel({super.key, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-        ),
-      ],
-    );
-  }
-}
-
-// ============================================================================
-// GENDER OPTION
-// ============================================================================
-
-class GenderOption extends StatelessWidget {
-  final String title;
-  final String value;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const GenderOption({
-    super.key,
-    required this.title,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                width: 2,
-                color: selected
-                    ? const Color(0xFF5B4BDB)
-                    : const Color(0xFFD0D0D5),
-              ),
-            ),
-            child: AnimatedScale(
-              scale: selected ? 1 : 0,
-              duration: const Duration(milliseconds: 180),
-              child: Center(
+          // ================================================================
+          // SUCCESS TOAST
+          // ================================================================
+          IgnorePointer(
+            child: AnimatedPositioned(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              left: 20,
+              right: 20,
+              bottom: showSuccess ? 24 : -100,
+              child: SafeArea(
                 child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF5B4BDB),
-                    shape: BoxShape.circle,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF202024),
+                    borderRadius: BorderRadius.circular(17),
+                    boxShadow: [
+                      BoxShadow(
+                        color: CupertinoColors.black.withOpacity(0.16),
+                        blurRadius: 25,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.check_mark_circled_solid,
+                        color: Color(0xFF72D572),
+                        size: 23,
+                      ),
+                      SizedBox(width: 11),
+                      Text(
+                        'Submitted successfully',
+                        style: TextStyle(
+                          color: CupertinoColors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 9),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -599,17 +574,64 @@ class GenderOption extends StatelessWidget {
 }
 
 // ============================================================================
-// COURSE OPTION
+// SECTION TITLE
 // ============================================================================
 
-class CourseOption extends StatelessWidget {
+class SectionTitle extends StatelessWidget {
   final String title;
+
+  const SectionTitle({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.2,
+        color: Color(0xFF7C7C84),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// FIELD TITLE
+// ============================================================================
+
+class FieldTitle extends StatelessWidget {
+  final String title;
+
+  const FieldTitle({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// GENDER SELECTION
+// ============================================================================
+
+class SelectionTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
-  const CourseOption({
+  const SelectionTile({
     super.key,
     required this.title,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
@@ -619,22 +641,107 @@ class CourseOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFEDEAFC) : CupertinoColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? const Color(0xFF5B4FE9) : const Color(0xFFE5E5E9),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected
+                  ? const Color(0xFF5B4FE9)
+                  : const Color(0xFF888890),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected
+                      ? const Color(0xFF4035C4)
+                      : const Color(0xFF333338),
+                ),
+              ),
+            ),
+            AnimatedScale(
+              scale: selected ? 1 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: const Icon(
+                CupertinoIcons.check_mark,
+                size: 17,
+                color: Color(0xFF5B4FE9),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// COURSE TILE
+// ============================================================================
+
+class CourseTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const CourseTile({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF0EEFF) : CupertinoColors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: selected ? const Color(0xFFD8D3FF) : const Color(0xFFE7E7EB),
+          ),
+        ),
         child: Row(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              width: 24,
-              height: 24,
+              width: 23,
+              height: 23,
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF5B4BDB) : Colors.transparent,
+                color: selected
+                    ? const Color(0xFF5B4FE9)
+                    : CupertinoColors.white,
                 borderRadius: BorderRadius.circular(7),
                 border: Border.all(
-                  width: 1.8,
                   color: selected
-                      ? const Color(0xFF5B4BDB)
-                      : const Color(0xFFD0D0D5),
+                      ? const Color(0xFF5B4FE9)
+                      : const Color(0xFFC8C8CE),
+                  width: 1.5,
                 ),
               ),
               child: AnimatedSwitcher(
@@ -642,22 +749,44 @@ class CourseOption extends StatelessWidget {
                 child: selected
                     ? const Icon(
                         CupertinoIcons.check_mark,
-                        key: ValueKey('checked'),
-                        color: Colors.white,
-                        size: 15,
+                        key: ValueKey('check'),
+                        color: CupertinoColors.white,
+                        size: 14,
                       )
-                    : const SizedBox(key: ValueKey('unchecked')),
+                    : const SizedBox(key: ValueKey('empty')),
               ),
             ),
-            const SizedBox(width: 12),
+
+            const SizedBox(width: 13),
+
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Color(0xFF92929A),
+                    ),
+                  ),
+                ],
               ),
+            ),
+
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 14,
+              color: Color(0xFFB2B2B8),
             ),
           ],
         ),
